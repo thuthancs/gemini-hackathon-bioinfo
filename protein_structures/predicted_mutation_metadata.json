@@ -1,0 +1,9 @@
+{
+  "sequence": "MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGNPKVKAHGKKVLGAFSEGLAHLDNLKGTFATLSELHCDKLHVDPENFRLLGNVLVCVLAHHFGKEFTPPVQAAYQKVVAGVANALAHKYH",
+  "sequence_length": 147,
+  "predicted_amino_acid": "E",
+  "prediction_score": 0.2522048056125641,
+  "structure_file": "protein_structures/predicted_mutation_esmfold.pdb",
+  "prediction_method": "ESMFold",
+  "prediction_date": "2026-02-03T22:28:07.790244"
+}
