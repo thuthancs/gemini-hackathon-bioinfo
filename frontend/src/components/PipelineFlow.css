@@ -1,0 +1,174 @@
+.pipeline-flow-container {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 0;
+  border: 1px solid #000000;
+  text-align: center;
+}
+
+.pipeline-flow-container h3 {
+  margin: 0 0 1.5rem 0;
+  color: #000000;
+  font-size: 1.25rem;
+}
+
+.pipeline-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.pipeline-phase-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.pipeline-phase {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 0;
+  border: 2px solid #000000;
+  min-width: 300px;
+  width: 100%;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.pipeline-phase.pending {
+  opacity: 1;
+  background: #ffffff;
+  border-color: #cccccc;
+}
+
+.pipeline-phase.pending .phase-name,
+.pipeline-phase.pending .phase-description {
+  color: #999999;
+}
+
+.pipeline-phase.active {
+  border-color: #000000;
+  background: #000000;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  animation: pulse 2s infinite;
+}
+
+.pipeline-phase.completed {
+  border-color: #000000;
+  background: #ffffff;
+}
+
+.pipeline-phase.error {
+  border-color: #f44336;
+  background: #ffebee;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.phase-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.pipeline-phase.pending .phase-icon {
+  background: #ffffff;
+  color: #999999;
+  border: 2px solid #cccccc;
+}
+
+.pipeline-phase.active .phase-icon {
+  background: #ffffff;
+  color: #000000;
+  animation: spin 2s linear infinite;
+}
+
+.pipeline-phase.completed .phase-icon {
+  background: #000000;
+  color: white;
+}
+
+.pipeline-phase.error .phase-icon {
+  background: #f44336;
+  color: white;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.phase-content {
+  flex: 1;
+}
+
+.phase-name {
+  font-weight: 600;
+  color: inherit;
+  margin-bottom: 0.25rem;
+}
+
+.phase-description {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.phase-connector {
+  width: 2px;
+  height: 30px;
+  background: #cccccc;
+  margin: 0;
+  transition: background 0.3s ease;
+  align-self: center;
+}
+
+.phase-connector.completed {
+  background: #000000;
+}
+
+.pipeline-error {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #ffebee;
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  color: #c62828;
+}
+
+@media (max-width: 768px) {
+  .pipeline-phase {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .phase-connector {
+    height: 30px;
+  }
+}
+
