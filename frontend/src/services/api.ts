@@ -42,12 +42,18 @@ class ApiClient {
   async analyzeMutation(
     sequence: string,
     mutation: string,
-    protein?: string
+    protein?: string,
+    geneFunction?: string,
+    disease?: string,
+    organism?: string
   ): Promise<AnalysisResponse> {
     const request: AnalysisRequest = {
       sequence,
       mutation,
       protein,
+      gene_function: geneFunction,
+      disease,
+      organism,
     };
 
     try {

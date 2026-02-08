@@ -58,9 +58,96 @@
   color: #666;
 }
 
+.view-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-mode-toggle button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border-radius: 0;
+  transition: all 0.3s;
+}
+
+.view-mode-toggle button:hover:not(:disabled) {
+  background: #f0f0f0;
+}
+
+.view-mode-toggle button.active {
+  background: #000000;
+  color: #ffffff;
+}
+
+.view-mode-toggle button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.overlay-image-container {
+  width: 100%;
+  padding: 1rem;
+  background: #ffffff;
+  text-align: center;
+}
+
+.overlay-image {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #000000;
+}
+
+.overlay-legend {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f9f9f9;
+  border-top: 1px solid #e0e0e0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #333;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+
+.legend-color.blue {
+  background: #0000ff;
+  opacity: 0.7;
+}
+
+.legend-color.green {
+  background: #00ff00;
+  opacity: 0.7;
+}
+
+.legend-color.red {
+  background: #ff0000;
+}
+
 @media (max-width: 768px) {
   .structure-viewer {
     height: 400px;
+  }
+
+  .overlay-legend {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }
 

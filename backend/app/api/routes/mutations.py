@@ -46,7 +46,10 @@ async def analyze_mutation(request: AnalysisRequest):
         result = await run_full_pipeline(
             sequence=request.sequence,
             mutation=request.mutation,
-            protein=request.protein
+            protein=request.protein,
+            gene_function=request.gene_function,
+            disease=request.disease,
+            organism=request.organism
         )
         
         # Check for errors

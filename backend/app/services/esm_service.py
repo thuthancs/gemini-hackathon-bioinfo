@@ -7,29 +7,35 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def validate_with_esm(mutant_sequence: str, candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def validate_with_esm(mutant_sequence: str, candidates: List[Dict[str, Any]], top_n: int = None) -> List[Dict[str, Any]]:
     """
     Validate rescue candidates using ESM-1v by checking if the model predicts
     the rescue amino acid with high probability at the masked position.
     
+    Returns the top N candidates ranked by ESM-1v score (highest first).
+    
     Args:
         mutant_sequence: Mutant protein sequence
         candidates: List of candidate dictionaries with position and rescue_aa
+        top_n: Number of top-scoring candidates to return (defaults to settings.esm_top_n)
     
     Returns:
-        List of validated candidates with esm_score and status added
+        List of top N validated candidates (sorted by esm_score, highest first)
+        with esm_score and status added
     
     Raises:
         Exception: If ESM API call fails
     """
+    if top_n is None:
+        top_n = settings.esm_top_n
+    
     url = settings.esm_api_url
     headers = {
         "Authorization": f"Token {settings.esm_api_key}",
         "Content-Type": "application/json"
     }
     
-    validated = []
-    
+    # First pass: get scores for all candidates
     for candidate in candidates:
         try:
             position = candidate["position"] - 1  # Convert to 0-indexed
@@ -38,7 +44,7 @@ def validate_with_esm(mutant_sequence: str, candidates: List[Dict[str, Any]]) ->
             if position < 0 or position >= len(mutant_sequence):
                 logger.warning(f"Position {position + 1} out of range for candidate {candidate.get('mutation', 'unknown')}")
                 candidate["esm_score"] = 0.0
-                candidate["status"] = "rejected"
+                candidate["status"] = "error"
                 continue
             
             # Create masked sequence (mask the rescue position)
@@ -109,15 +115,7 @@ def validate_with_esm(mutant_sequence: str, candidates: List[Dict[str, Any]]) ->
                 logger.warning(f"Could not extract probability for {target_aa} at position {position + 1}")
             
             candidate["esm_score"] = round(float(target_prob), 3)
-            
-            # Threshold: accept if ESM-1v gives >threshold probability
-            if target_prob > settings.esm_validation_threshold:
-                candidate["status"] = "validated"
-                validated.append(candidate)
-                logger.info(f"Candidate {candidate.get('mutation', 'unknown')} validated with score {target_prob:.3f}")
-            else:
-                candidate["status"] = "rejected"
-                logger.debug(f"Candidate {candidate.get('mutation', 'unknown')} rejected with score {target_prob:.3f}")
+            candidate["status"] = "scored"  # Temporary status, will be updated after ranking
         
         except requests.exceptions.RequestException as e:
             logger.error(f"ESM API request failed for candidate {candidate.get('mutation', 'unknown')}: {e}")
@@ -128,6 +126,28 @@ def validate_with_esm(mutant_sequence: str, candidates: List[Dict[str, Any]]) ->
             candidate["esm_score"] = 0.0
             candidate["status"] = "error"
     
-    logger.info(f"ESM validation complete: {len(validated)}/{len(candidates)} candidates validated")
+    # Second pass: rank by score and take top N
+    # Filter out error candidates, sort by score (descending), take top N
+    scored_candidates = [c for c in candidates if c.get("status") != "error" and c.get("esm_score", 0) > 0]
+    scored_candidates.sort(key=lambda x: x.get("esm_score", 0), reverse=True)
+    
+    validated = scored_candidates[:top_n]
+    
+    # Update status for validated candidates
+    for candidate in validated:
+        candidate["status"] = "validated"
+        logger.info(f"Candidate {candidate.get('mutation', 'unknown')} validated with score {candidate.get('esm_score', 0):.3f} (ranked in top {top_n})")
+    
+    # Mark remaining as rejected
+    for candidate in scored_candidates[top_n:]:
+        candidate["status"] = "rejected"
+        logger.debug(f"Candidate {candidate.get('mutation', 'unknown')} rejected (score {candidate.get('esm_score', 0):.3f}, not in top {top_n})")
+    
+    # Mark error candidates as rejected for consistency
+    for candidate in candidates:
+        if candidate.get("status") == "error":
+            candidate["status"] = "rejected"
+    
+    logger.info(f"ESM validation complete: {len(validated)}/{len(candidates)} candidates validated (top {top_n} by score)")
     return validated
 

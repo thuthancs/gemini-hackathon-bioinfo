@@ -143,9 +143,62 @@
 }
 
 .mutation-input:focus,
-.protein-input:focus {
+.protein-input:focus,
+.gene-function-input:focus,
+.disease-input:focus,
+.organism-input:focus {
   outline: none;
   border-color: #000000;
+}
+
+.gene-function-input,
+.disease-input,
+.organism-input {
+  padding: 0.75rem;
+  border: 1px solid #000000;
+  border-radius: 0;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.gene-function-input {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.advanced-options {
+  margin-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 1rem;
+}
+
+.advanced-toggle {
+  background: none;
+  border: none;
+  color: #000000;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 0;
+  text-align: left;
+  width: 100%;
+  transition: color 0.3s;
+}
+
+.advanced-toggle:hover:not(:disabled) {
+  color: #333333;
+}
+
+.advanced-toggle:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.advanced-fields {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .submit-button {
@@ -337,6 +390,100 @@
   color: #666;
 }
 
+.reasoning-cell .literature-support,
+.reasoning-cell .structural-basis {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.validation-verdict {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f9f9f9;
+  border: 1px solid #000000;
+}
+
+.verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verdict-label {
+  font-weight: 600;
+  color: #000000;
+}
+
+.verdict-value {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid #000000;
+}
+
+.verdict-approved {
+  background: #ffffff;
+  color: #000000;
+}
+
+.verdict-approved-with-caution {
+  background: #fff8dc;
+  color: #000000;
+  border-color: #ffa500;
+}
+
+.verdict-rejected {
+  background: #000000;
+  color: #ffffff;
+}
+
+.risk-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.risk-label {
+  font-weight: 600;
+  color: #000000;
+}
+
+.risk-value {
+  padding: 0.25rem 0.75rem;
+  border-radius: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid #000000;
+}
+
+.risk-low {
+  background: #ffffff;
+  color: #000000;
+}
+
+.risk-medium {
+  background: #fff8dc;
+  color: #000000;
+  border-color: #ffa500;
+}
+
+.risk-high {
+  background: #000000;
+  color: #ffffff;
+}
+
+.validation-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e0e0e0;
+}
+
 .no-results {
   text-align: center;
   padding: 2rem;
@@ -358,6 +505,37 @@
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 2px solid #e0e0e0;
+}
+
+.structure-view-selector {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #f9f9f9;
+  border: 1px solid #000000;
+}
+
+.structure-view-selector button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-radius: 0;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.structure-view-selector button:hover {
+  background: #f0f0f0;
+}
+
+.structure-view-selector button.active {
+  background: #000000;
+  color: #ffffff;
 }
 
 /* Responsive */

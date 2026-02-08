@@ -2,7 +2,14 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
 
 interface SequenceInputProps {
-  onSubmit: (sequence: string, mutation: string, protein: string) => void;
+  onSubmit: (
+    sequence: string,
+    mutation: string,
+    protein: string,
+    geneFunction?: string,
+    disease?: string,
+    organism?: string
+  ) => void;
   isLoading: boolean;
 }
 
@@ -12,6 +19,10 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
   const [protein, setProtein] = useState('TP53');
   const [fileContent, setFileContent] = useState('');
   const [error, setError] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [geneFunction, setGeneFunction] = useState('');
+  const [disease, setDisease] = useState('');
+  const [organism, setOrganism] = useState('');
 
   const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -70,7 +81,14 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
       return;
     }
 
-    onSubmit(sequence.trim(), mutation.trim().toUpperCase(), protein.trim() || 'TP53');
+    onSubmit(
+      sequence.trim(),
+      mutation.trim().toUpperCase(),
+      protein.trim() || 'TP53',
+      geneFunction.trim() || undefined,
+      disease.trim() || undefined,
+      organism.trim() || undefined
+    );
   };
 
   return (
@@ -133,6 +151,62 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
             className="protein-input"
           />
         </div>
+      </div>
+
+      <div className="advanced-options">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="advanced-toggle"
+          disabled={isLoading}
+        >
+          {showAdvanced ? '▼' : '▶'} Advanced Options
+        </button>
+        
+        {showAdvanced && (
+          <div className="advanced-fields">
+            <div className="form-group">
+              <label htmlFor="gene-function">Gene Function (optional)</label>
+              <textarea
+                id="gene-function"
+                value={geneFunction}
+                onChange={(e) => setGeneFunction(e.target.value)}
+                placeholder="e.g., DNA binding tumor suppressor"
+                disabled={isLoading}
+                rows={2}
+                className="gene-function-input"
+              />
+            </div>
+            
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="disease">Disease (optional)</label>
+                <input
+                  id="disease"
+                  type="text"
+                  value={disease}
+                  onChange={(e) => setDisease(e.target.value)}
+                  placeholder="e.g., Li-Fraumeni syndrome"
+                  disabled={isLoading}
+                  className="disease-input"
+                />
+              </div>
+              
+              <div className="form-group">
+                <label htmlFor="organism">Organism (optional)</label>
+                <input
+                  id="organism"
+                  type="text"
+                  value={organism}
+                  onChange={(e) => setOrganism(e.target.value)}
+                  placeholder="e.g., Homo sapiens"
+                  disabled={isLoading}
+                  className="organism-input"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <div className="error-message">{error}</div>}

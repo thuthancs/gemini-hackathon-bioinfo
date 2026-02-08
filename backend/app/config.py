@@ -14,10 +14,8 @@ class Settings(BaseSettings):
     esm_api_url: str = "https://biolm.ai/api/v3/esm1v-all/predict/"
     esmfold_api_url: str = "https://api.esmatlas.com/foldSequence/v1/pdb/"
     
-    # Validation Thresholds
-    # ESM-1v scores are probabilities for single amino acid at masked position
-    # Typical "good" predictions range from 0.01-0.1, so threshold should be lower
-    esm_validation_threshold: float = 0.01  # ESM-1v probability threshold (lowered from 0.6)
+    # Validation Settings
+    esm_top_n: int = 3  # Number of top-scoring candidates to return from ESM validation
     rmsd_good_threshold: float = 2.0  # RMSD threshold in Angstroms
     
     # Gemini Model Settings

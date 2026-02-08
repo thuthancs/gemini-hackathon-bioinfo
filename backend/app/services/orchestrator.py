@@ -1,6 +1,6 @@
 """Main orchestrator service that coordinates all pipeline phases."""
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.services.gemini_service import get_rescue_candidates, final_validation
 from app.services.esm_service import validate_with_esm
 from app.services.analysis_service import predict_and_analyze
@@ -12,7 +12,10 @@ logger = logging.getLogger(__name__)
 async def run_full_pipeline(
     sequence: str,
     mutation: str,
-    protein: str = "TP53"
+    protein: str = "TP53",
+    gene_function: Optional[str] = None,
+    disease: Optional[str] = None,
+    organism: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Execute the complete 6-phase mutation rescue pipeline.
@@ -53,19 +56,35 @@ async def run_full_pipeline(
         
         # Phase 1: Gemini discovers candidates
         logger.info("Phase 1: Discovering rescue candidates with Gemini")
+        candidates = []
         try:
-            candidates = get_rescue_candidates(mutation, protein)
+            candidates = get_rescue_candidates(
+                mutation=mutation,
+                protein=protein,
+                gene_function=gene_function,
+                disease=disease,
+                organism=organism,
+                wild_type_sequence=sequence,
+                mutant_sequence=mutant_seq  # Available after Phase 0
+            )
             logger.info(f"Phase 1 complete: {len(candidates)} candidates discovered")
         except Exception as e:
-            logger.error(f"Phase 1 failed: {e}")
-            return {
-                "error": f"Failed to discover candidates: {str(e)}",
-                "original_mutation": mutation,
-                "candidates_discovered": 0,
-                "candidates_validated": 0,
-                "results": {},
-                "wt_pdb_structure": None
-            }
+            error_str = str(e)
+            # Check if it's a 503/overloaded error - treat as "no candidates" and continue
+            # Also check for the specific prefix we added in gemini_service
+            if "503" in error_str or "UNAVAILABLE" in error_str or "overloaded" in error_str.lower() or "503_UNAVAILABLE" in error_str:
+                logger.warning(f"Gemini API unavailable (503/overloaded): {error_str}. Continuing with empty candidates for demo.")
+                candidates = []  # Continue with empty candidates
+            else:
+                logger.error(f"Phase 1 failed: {e}")
+                return {
+                    "error": f"Failed to discover candidates: {str(e)}",
+                    "original_mutation": mutation,
+                    "candidates_discovered": 0,
+                    "candidates_validated": 0,
+                    "results": {},
+                    "wt_pdb_structure": None
+                }
         
         if not candidates:
             logger.warning("No candidates discovered in Phase 1")
@@ -101,18 +120,43 @@ async def run_full_pipeline(
         
         if not validated:
             logger.warning("No candidates passed ESM-1v validation")
-            # Still get WT structure for potential future use
+            # Generate both WT and pathogenic structures for demo
             from app.services.esmfold_service import predict_structure
+            from app.services.gemini_service import generate_mutation_validation
+            logger.info("Generating WT and pathogenic structures for demo")
             wt_pdb = predict_structure(sequence)
+            pathogenic_pdb = predict_structure(mutant_seq)
+            
+            # Generate demo validation analysis for the mutation itself
+            logger.info("Generating mutation validation analysis for demo")
+            try:
+                demo_validation = generate_mutation_validation(
+                    mutation=mutation,
+                    gene_name=protein,
+                    gene_function=gene_function,
+                    disease=disease,
+                    wt_pdb=wt_pdb,
+                    pathogenic_pdb=pathogenic_pdb
+                )
+            except Exception as e:
+                logger.error(f"Failed to generate demo validation: {e}")
+                # Return basic structure even if validation fails
+                demo_validation = {
+                    "overall_verdict": "ANALYSIS_UNAVAILABLE",
+                    "summary": f"Mutation validation analysis unavailable: {str(e)}"
+                }
+            
             return {
                 "original_mutation": mutation,
                 "candidates_discovered": len(candidates),
                 "candidates_validated": 0,
                 "results": {
                     "approved": [],
-                    "summary": "No candidates passed ESM-1v validation"
+                    "summary": "No candidates passed ESM-1v validation. Showing mutation impact analysis instead.",
+                    **demo_validation  # Include validation dimensions
                 },
-                "wt_pdb_structure": wt_pdb
+                "wt_pdb_structure": wt_pdb,
+                "pathogenic_pdb_structure": pathogenic_pdb
             }
         
         # Phase 3 & 4: Structure prediction + RMSD
@@ -123,15 +167,17 @@ async def run_full_pipeline(
             logger.info("Predicting wild-type structure with ESMFold")
             wt_pdb = predict_structure(sequence)
             
-            analyzed = predict_and_analyze(sequence, mutant_seq, validated)
+            analyzed, pathogenic_pdb = predict_and_analyze(sequence, mutant_seq, validated)
             logger.info(f"Phase 3 & 4 complete: {len(analyzed)} candidates analyzed")
         except Exception as e:
             logger.error(f"Phase 3 & 4 failed: {e}")
             # Try to get WT structure if we got that far
             wt_pdb = None
+            pathogenic_pdb = None
             try:
                 from app.services.esmfold_service import predict_structure
                 wt_pdb = predict_structure(sequence)
+                pathogenic_pdb = predict_structure(mutant_seq)
             except:
                 pass
             return {
@@ -140,13 +186,20 @@ async def run_full_pipeline(
                 "candidates_discovered": len(candidates),
                 "candidates_validated": len(validated),
                 "results": {},
-                "wt_pdb_structure": wt_pdb
+                "wt_pdb_structure": wt_pdb,
+                "pathogenic_pdb_structure": pathogenic_pdb
             }
         
         # Phase 5: Gemini final review
         logger.info("Phase 5: Final validation with Gemini")
         try:
-            final = final_validation(analyzed)
+            final = final_validation(
+                analyzed,
+                gene_name=protein,
+                pathogenic_mutation=mutation,
+                gene_function=gene_function,
+                disease=disease
+            )
             logger.info(f"Phase 5 complete: {len(final.get('approved', []))} candidates approved")
         except Exception as e:
             logger.error(f"Phase 5 failed: {e}")
@@ -160,7 +213,8 @@ async def run_full_pipeline(
                     "validated": analyzed,
                     "summary": f"Final validation failed: {str(e)}. Returning all analyzed candidates."
                 },
-                "wt_pdb_structure": wt_pdb
+                "wt_pdb_structure": wt_pdb,
+                "pathogenic_pdb_structure": pathogenic_pdb
             }
         
         logger.info("Pipeline complete successfully")
@@ -174,7 +228,8 @@ async def run_full_pipeline(
             "candidates_discovered": len(candidates),
             "candidates_validated": len(validated),
             "results": final_with_validated,
-            "wt_pdb_structure": wt_pdb
+            "wt_pdb_structure": wt_pdb,
+            "pathogenic_pdb_structure": pathogenic_pdb
         }
     
     except Exception as e:
