@@ -1,15 +1,20 @@
 """Service for interacting with Google Gemini API."""
 import json
 import logging
+import time
 from typing import List, Dict, Any, Optional
 from google import genai
+from google.genai import types
 from app.config import settings
+from app.prompts.phase5_system import PHASE5_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
+# Retry config for transient errors (503 overloaded)
+GEMINI_RETRIES = 3
+GEMINI_RETRY_DELAY = 10
+
 # Initialize Gemini API client
-# The client automatically picks up GEMINI_API_KEY from environment
-# But we pass it explicitly to use our settings
 client = genai.Client(api_key=settings.gemini_api_key)
 
 # Prompt templates
@@ -52,7 +57,7 @@ TASK: Identify potential RESCUE MUTATIONS for a pathogenic variant.
             prompt += f"\n- Change: {from_aa} → {to_aa}"
         except:
             pass
-    
+
     if wild_type_sequence:
         prompt += f"""
 
@@ -223,8 +228,27 @@ Return a JSON object with this structure:
 }}
 
 Return ONLY the JSON object, no markdown, no explanation."""
-    
+
     return prompt
+
+
+# User prompt for Phase 5 - passes candidate data to the system-prompt-guided model
+VALIDATION_PROMPT_TEMPLATE = """Evaluate these rescue mutation candidates using your expert validation framework.
+
+## CANDIDATE DATA (with quantitative metrics)
+
+{data}
+
+For each candidate you have:
+- mutation: rescue mutation notation (e.g., H168R)
+- position, original_aa, rescue_aa
+- esm_score: ESM-1v evolutionary fitness score
+- rmsd / rmsd_vs_mutant: RMSD between rescue and mutant structures (Å)
+- rmsd_vs_wt: RMSD between rescue and wild-type (Å)
+- structural_recovery: "good" if rmsd_vs_mutant < 2.0 Å, else "poor"
+- reasoning: literature-based rationale
+
+Apply your four-dimensional validation (structural restoration, aggregation risk, functional preservation, amyloid risk). Output valid JSON including your full analysis AND the "approved" array (candidates that pass) and "summary" string."""
 
 
 def get_rescue_candidates(
@@ -238,7 +262,7 @@ def get_rescue_candidates(
 ) -> List[Dict[str, Any]]:
     """
     Ask Gemini for 3-5 compensatory mutation candidates based on literature.
-    
+
     Args:
         mutation: Mutation string (e.g., "R249S")
         protein: Protein name (default: "TP53")
