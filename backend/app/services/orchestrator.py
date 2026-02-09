@@ -1,5 +1,7 @@
 """Main orchestrator service that coordinates all pipeline phases."""
+import asyncio
 import logging
+import time
 from typing import Dict, Any, Optional
 from app.services.gemini_service import get_rescue_candidates, final_validation
 from app.services.esm_service import validate_with_esm
@@ -58,6 +60,12 @@ async def run_full_pipeline(
         # Phase 1: Gemini discovers candidates
         logger.info("Phase 1: Discovering rescue candidates with Gemini")
         candidates = []
+        # #region agent log
+        try:
+            with open("/Users/yerkemshakhman/lastdraft/gemini-hackathon-bioinfo/.cursor/debug.log", "a") as _f:
+                _f.write("\n" + __import__("json").dumps({"location":"orchestrator.py:phase1_start","message":"Phase 1 Gemini call starting","data":{"t":time.time()},"hypothesisId":"H1","timestamp":int(time.time()*1000)}))
+        except Exception: pass
+        # #endregion
         try:
             candidates = get_rescue_candidates(
                 mutation=mutation,
@@ -69,6 +77,13 @@ async def run_full_pipeline(
                 mutant_sequence=mutant_seq  # Available after Phase 0
             )
             logger.info(f"Phase 1 complete: {len(candidates)} candidates discovered")
+            # #region agent log
+            phase1_end_t = time.time()
+            try:
+                with open("/Users/yerkemshakhman/lastdraft/gemini-hackathon-bioinfo/.cursor/debug.log", "a") as _f:
+                    _f.write("\n" + __import__("json").dumps({"location":"orchestrator.py:phase1_end","message":"Phase 1 Gemini completed","data":{"t":phase1_end_t,"candidates":len(candidates)},"hypothesisId":"H1","timestamp":int(time.time()*1000)}))
+            except Exception: pass
+            # #endregion
         except Exception as e:
             error_str = str(e)
             if "503" in error_str or "UNAVAILABLE" in error_str or "overloaded" in error_str.lower() or "503_UNAVAILABLE" in error_str:
@@ -189,7 +204,26 @@ async def run_full_pipeline(
                 "pathogenic_pdb_structure": pathogenic_pdb
             }
         
+        # Delay before Phase 5 to avoid Gemini free-tier per-minute quota (250K tokens)
+        # #region agent log
+        t_before_delay = time.time()
+        try:
+            with open("/Users/yerkemshakhman/lastdraft/gemini-hackathon-bioinfo/.cursor/debug.log", "a") as _f:
+                _f.write("\n" + __import__("json").dumps({"location":"orchestrator.py:before_delay","message":"About to sleep before Phase 5","data":{"t":t_before_delay},"hypothesisId":"H1","timestamp":int(time.time()*1000)}))
+        except Exception: pass
+        # #endregion
+        delay_seconds = 60  # Must be >=60s: quota is rolling 60s window; Phase 1+5 must not overlap
+        logger.info(f"Waiting {delay_seconds}s before Phase 5 to avoid Gemini rate limit")
+        await asyncio.sleep(delay_seconds)
+
         # Phase 5: Gemini final review
+        # #region agent log
+        t_phase5_start = time.time()
+        try:
+            with open("/Users/yerkemshakhman/lastdraft/gemini-hackathon-bioinfo/.cursor/debug.log", "a") as _f:
+                _f.write("\n" + __import__("json").dumps({"location":"orchestrator.py:phase5_start","message":"Phase 5 Gemini call starting","data":{"t":t_phase5_start,"elapsed_since_before_delay":round(t_phase5_start-t_before_delay,1),"seconds_since_phase1":round(t_phase5_start-phase1_end_t,1),"quota_window_60s":(t_phase5_start-phase1_end_t)<60},"hypothesisId":"H1","timestamp":int(time.time()*1000)}))
+        except Exception: pass
+        # #endregion
         logger.info("Phase 5: Final validation with Gemini")
         try:
             final = final_validation(
@@ -200,6 +234,11 @@ async def run_full_pipeline(
                 disease=disease
             )
             logger.info(f"Phase 5 complete: {len(final.get('approved', []))} candidates approved")
+            # Merge approved back with full analyzed data (PDB was stripped for API limit)
+            approved_list = final.get("approved", [])
+            by_mut = {a.get("mutation"): a for a in analyzed}
+            merged = [by_mut[c.get("mutation")] for c in approved_list if c.get("mutation") in by_mut]
+            final["approved"] = merged if merged else approved_list
         except Exception as e:
             logger.error(f"Phase 5 failed: {e}")
             # Return analyzed candidates even if final validation fails
@@ -213,11 +252,7 @@ async def run_full_pipeline(
                     "summary": f"Final validation failed: {str(e)}. Returning all analyzed candidates."
                 },
                 "wt_pdb_structure": wt_pdb,
-<<<<<<< HEAD
                 "pathogenic_pdb_structure": pathogenic_pdb
-=======
-                "pathogenic_pdb_structure": pathogenic_pdb
->>>>>>> 45dd1d2 (Adding backend)
             }
         
         logger.info("Pipeline complete successfully")
