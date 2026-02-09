@@ -1,5 +1,5 @@
 /** Component for sequence and mutation input. */
-import { useState, ChangeEvent, FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 
 interface SequenceInputProps {
   onSubmit: (
@@ -17,7 +17,6 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
   const [sequence, setSequence] = useState('');
   const [mutation, setMutation] = useState('');
   const [protein, setProtein] = useState('TP53');
-  const [fileContent, setFileContent] = useState('');
   const [error, setError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [geneFunction, setGeneFunction] = useState('');
@@ -31,21 +30,20 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
-      setFileContent(content);
-      
+
       // Try to parse FASTA format
       try {
         const lines = content.split('\n');
         const sequenceLines = lines.filter(line => line.trim() && !line.trim().startsWith('>'));
         const parsedSequence = sequenceLines.join('').replace(/\s/g, '');
-        
+
         if (parsedSequence) {
           setSequence(parsedSequence);
           setError('');
         } else {
           setError('No sequence found in file');
         }
-      } catch (err) {
+      } catch {
         setError('Failed to parse FASTA file');
       }
     };
@@ -162,7 +160,7 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
         >
           {showAdvanced ? '▼' : '▶'} Advanced Options
         </button>
-        
+
         {showAdvanced && (
           <div className="advanced-fields">
             <div className="form-group">
@@ -177,7 +175,7 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
                 className="gene-function-input"
               />
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="disease">Disease (optional)</label>
@@ -191,7 +189,7 @@ export default function SequenceInput({ onSubmit, isLoading }: SequenceInputProp
                   className="disease-input"
                 />
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="organism">Organism (optional)</label>
                 <input

@@ -133,28 +133,6 @@ function App() {
     return null;
   };
 
-  // Get all mutation positions to highlight
-  const getMutationPositions = () => {
-    if (!results) return [];
-    const positions: number[] = [];
-
-    // Add pathogenic mutation position
-    const pathogenicPos = parseMutationPosition(results.original_mutation);
-    if (pathogenicPos) {
-      positions.push(pathogenicPos);
-    }
-
-    // Add rescue mutation position if candidate is selected
-    if (selectedCandidate !== null) {
-      const candidate = getSelectedCandidate();
-      if (candidate?.position) {
-        positions.push(candidate.position);
-      }
-    }
-
-    return positions;
-  };
-
   return (
     <div className="app">
       <header className="app-header">
