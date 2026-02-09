@@ -26,7 +26,14 @@ class Settings(BaseSettings):
     # Application Settings
     app_name: str = "GeneRescue API"
     debug: bool = False
-    
+
+    # Security
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    rate_limit_analyze: str = "5/minute"
+    rate_limit_create_mutant: str = "30/minute"
+    max_sequence_length: int = 5000
+    max_protein_name_length: int = 100
+
     model_config = ConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

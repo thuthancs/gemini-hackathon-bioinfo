@@ -51,7 +51,8 @@ async def run_full_pipeline(
                 "candidates_discovered": 0,
                 "candidates_validated": 0,
                 "results": {},
-                "wt_pdb_structure": None
+                "wt_pdb_structure": None,
+                "pathogenic_pdb_structure": None
             }
         
         # Phase 1: Gemini discovers candidates
@@ -70,11 +71,9 @@ async def run_full_pipeline(
             logger.info(f"Phase 1 complete: {len(candidates)} candidates discovered")
         except Exception as e:
             error_str = str(e)
-            # Check if it's a 503/overloaded error - treat as "no candidates" and continue
-            # Also check for the specific prefix we added in gemini_service
             if "503" in error_str or "UNAVAILABLE" in error_str or "overloaded" in error_str.lower() or "503_UNAVAILABLE" in error_str:
                 logger.warning(f"Gemini API unavailable (503/overloaded): {error_str}. Continuing with empty candidates for demo.")
-                candidates = []  # Continue with empty candidates
+                candidates = []
             else:
                 logger.error(f"Phase 1 failed: {e}")
                 return {
@@ -83,7 +82,8 @@ async def run_full_pipeline(
                     "candidates_discovered": 0,
                     "candidates_validated": 0,
                     "results": {},
-                    "wt_pdb_structure": None
+                    "wt_pdb_structure": None,
+                    "pathogenic_pdb_structure": None
                 }
         
         if not candidates:
@@ -99,7 +99,8 @@ async def run_full_pipeline(
                     "approved": [],
                     "summary": "No rescue candidates were discovered"
                 },
-                "wt_pdb_structure": wt_pdb
+                "wt_pdb_structure": wt_pdb,
+                "pathogenic_pdb_structure": None
             }
         
         # Phase 2: ESM-1v validates candidates
@@ -115,7 +116,8 @@ async def run_full_pipeline(
                 "candidates_discovered": len(candidates),
                 "candidates_validated": 0,
                 "results": {},
-                "wt_pdb_structure": None
+                "wt_pdb_structure": None,
+                "pathogenic_pdb_structure": None
             }
         
         if not validated:
@@ -158,16 +160,13 @@ async def run_full_pipeline(
                 "wt_pdb_structure": wt_pdb,
                 "pathogenic_pdb_structure": pathogenic_pdb
             }
-        
+
         # Phase 3 & 4: Structure prediction + RMSD
         logger.info("Phase 3 & 4: Predicting structures and calculating RMSD")
         try:
-            # Get wild-type structure for comparison (will be reused in predict_and_analyze)
-            from app.services.esmfold_service import predict_structure
-            logger.info("Predicting wild-type structure with ESMFold")
-            wt_pdb = predict_structure(sequence)
-            
-            analyzed, pathogenic_pdb = predict_and_analyze(sequence, mutant_seq, validated)
+            analyzed, pathogenic_pdb, wt_pdb = predict_and_analyze(
+                sequence, mutant_seq, validated
+            )
             logger.info(f"Phase 3 & 4 complete: {len(analyzed)} candidates analyzed")
         except Exception as e:
             logger.error(f"Phase 3 & 4 failed: {e}")
@@ -214,7 +213,11 @@ async def run_full_pipeline(
                     "summary": f"Final validation failed: {str(e)}. Returning all analyzed candidates."
                 },
                 "wt_pdb_structure": wt_pdb,
+<<<<<<< HEAD
                 "pathogenic_pdb_structure": pathogenic_pdb
+=======
+                "pathogenic_pdb_structure": pathogenic_pdb
+>>>>>>> 45dd1d2 (Adding backend)
             }
         
         logger.info("Pipeline complete successfully")
@@ -240,6 +243,7 @@ async def run_full_pipeline(
             "candidates_discovered": 0,
             "candidates_validated": 0,
             "results": {},
-            "wt_pdb_structure": None
+            "wt_pdb_structure": None,
+            "pathogenic_pdb_structure": None
         }
 

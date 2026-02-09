@@ -2,8 +2,12 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 from app.api.routes import mutations, health
 from app.config import settings
+from app.limiter import limiter
 
 # Configure logging
 logging.basicConfig(
@@ -20,12 +24,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS: restrict origins from config (comma-separated list)
+origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+if not origins:
+    origins = ["http://localhost:3000", "http://localhost:5173"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual frontend URL
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

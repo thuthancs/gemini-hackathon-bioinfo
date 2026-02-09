@@ -2,12 +2,50 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
+from app.config import settings
+
+
+class CreateMutantRequest(BaseModel):
+    """Request for Phase 0: create mutant sequence from wild-type."""
+    sequence: str = Field(
+        ...,
+        max_length=settings.max_sequence_length,
+        description="Wild-type protein sequence (amino acids)",
+    )
+    mutation: str = Field(
+        ...,
+        max_length=20,
+        description="Mutation in format like 'R249S'",
+    )
+
+
+class CreateMutantResponse(BaseModel):
+    """Response from Phase 0: mutant sequence."""
+    mutation: str = Field(..., description="Mutation applied")
+    wild_type_sequence: str = Field(..., description="Input wild-type sequence")
+    mutant_sequence: str = Field(..., description="Mutant sequence with mutation applied")
+    position: int = Field(..., description="1-indexed position of mutation")
+    original_aa: str = Field(..., description="Original amino acid")
+    new_aa: str = Field(..., description="New amino acid")
+
 
 class AnalysisRequest(BaseModel):
     """Request model for mutation analysis."""
-    sequence: str = Field(..., description="Wild-type protein sequence (amino acids)")
-    mutation: str = Field(..., description="Mutation in format like 'R249S'")
-    protein: Optional[str] = Field(default="TP53", description="Protein name (optional)")
+    sequence: str = Field(
+        ...,
+        max_length=settings.max_sequence_length,
+        description="Wild-type protein sequence (amino acids)",
+    )
+    mutation: str = Field(
+        ...,
+        max_length=20,
+        description="Mutation in format like 'R249S'",
+    )
+    protein: Optional[str] = Field(
+        default="TP53",
+        max_length=settings.max_protein_name_length,
+        description="Protein name (optional)",
+    )
     gene_function: Optional[str] = Field(None, description="Protein function description")
     disease: Optional[str] = Field(None, description="Disease context")
     organism: Optional[str] = Field(None, description="Organism name")
