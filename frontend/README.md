@@ -44,6 +44,49 @@ npm run build
 
 The built files will be in the `dist/` directory.
 
+## Deployment
+
+### Deploy to Vercel
+
+#### Quick Deploy (CLI)
+
+1. Install Vercel CLI:
+```bash
+npm i -g vercel
+```
+
+2. From the frontend directory, run:
+```bash
+vercel
+```
+
+3. Follow the prompts and add environment variables when asked.
+
+#### Deploy via GitHub
+
+1. Push your code to GitHub
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "Add New Project" → Import your repository
+4. Configure:
+   - **Root Directory**: `frontend` (or leave blank if deploying from frontend directory)
+   - **Framework Preset**: Vite (auto-detected)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+5. Add environment variable:
+   - `VITE_API_BASE_URL`: Your backend API URL
+6. Click "Deploy"
+
+#### Environment Variables
+
+In Vercel, add this environment variable:
+- `VITE_API_BASE_URL`: Your backend API URL (e.g., `https://your-backend.herokuapp.com`)
+
+**Important**: Make sure your backend CORS settings allow requests from your Vercel domain.
+
+#### Preview Deployments
+
+Vercel automatically creates preview deployments for every push to a branch, making it easy to test changes before merging to main.
+
 ## Project Structure
 
 ```

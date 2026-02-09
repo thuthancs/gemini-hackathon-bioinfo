@@ -232,6 +232,77 @@ The system includes comprehensive error handling:
 - Detailed error messages in responses
 - User-friendly error display in frontend
 
+## Deployment
+
+### Frontend on Vercel
+
+The frontend can be easily deployed to Vercel:
+
+#### Option 1: Deploy via Vercel CLI
+
+1. Install Vercel CLI:
+```bash
+npm i -g vercel
+```
+
+2. Navigate to frontend directory:
+```bash
+cd frontend
+```
+
+3. Deploy:
+```bash
+vercel
+```
+
+4. Follow the prompts to:
+   - Link to your Vercel account
+   - Set up the project
+   - Configure environment variables (see below)
+
+#### Option 2: Deploy via GitHub Integration
+
+1. Push your code to GitHub
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "Add New Project"
+4. Import your GitHub repository
+5. Configure:
+   - **Root Directory**: `frontend`
+   - **Framework Preset**: Vite
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+6. Add environment variables (see below)
+7. Click "Deploy"
+
+#### Environment Variables
+
+In Vercel dashboard, add these environment variables:
+
+- `VITE_API_BASE_URL`: Your backend API URL (e.g., `https://your-backend.herokuapp.com` or `https://api.yourdomain.com`)
+
+**Note**: If your backend is on a different domain, you may need to configure CORS on the backend to allow requests from your Vercel domain.
+
+#### Custom Domain (Optional)
+
+1. Go to your project settings in Vercel
+2. Navigate to "Domains"
+3. Add your custom domain
+4. Follow DNS configuration instructions
+
+### Backend Deployment
+
+The backend can be deployed to various platforms:
+
+- **Heroku**: Use a `Procfile` with `web: uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Railway**: Supports Python applications directly
+- **AWS/GCP/Azure**: Use containerized deployment (Docker)
+- **Fly.io**: Supports Python applications
+
+For production, use a production ASGI server:
+```bash
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+```
+
 ## Development
 
 ### Running Tests
