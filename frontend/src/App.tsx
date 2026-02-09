@@ -15,7 +15,6 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [currentPhase, setCurrentPhase] = useState<number>(-1);
   const [selectedCandidate, setSelectedCandidate] = useState<number | null>(null);
-  const [structureViewMode, setStructureViewMode] = useState<'rescue' | 'wt' | 'pathogenic'>('rescue');
 
   // Simulate pipeline phases during loading
   useEffect(() => {
@@ -61,9 +60,6 @@ function App() {
         disease,
         organism
       );
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:64','message':'Response received from API','data':{hasWt:!!response.wt_pdb_structure,hasPathogenic:!!response.pathogenic_pdb_structure,wtLength:response.wt_pdb_structure?.length||0,pathogenicLength:response.pathogenic_pdb_structure?.length||0,wtFirst50:response.wt_pdb_structure?.substring(0,50),pathogenicFirst50:response.pathogenic_pdb_structure?.substring(0,50),structuresIdentical:response.wt_pdb_structure===response.pathogenic_pdb_structure},timestamp:Date.now(),runId:'pre-fix',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       setResults(response);
       setCurrentPhase(5); // Mark all phases as complete
       
@@ -94,9 +90,6 @@ function App() {
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'App.tsx:95', 'message': 'Error in handleSubmit', 'data': { errorMessage, errorStack: err instanceof Error ? err.stack : undefined }, timestamp: Date.now(), runId: 'post-fix', hypothesisId: 'F' }) }).catch(() => { });
-      // #endregion
       setError(errorMessage);
       console.error('Analysis error:', err);
     } finally {
@@ -119,132 +112,7 @@ function App() {
     return candidates[selectedCandidate] || null;
   };
 
-  // Extract PDB data from results based on view mode
-  const getStructureData = () => {
-    if (!results) return null;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:117','message':'getStructureData called','data':{structureViewMode,selectedCandidate,hasWt:!!results.wt_pdb_structure,hasPathogenic:!!results.pathogenic_pdb_structure,wtLength:results.wt_pdb_structure?.length||0,pathogenicLength:results.pathogenic_pdb_structure?.length||0,wtFirst50:results.wt_pdb_structure?.substring(0,50),pathogenicFirst50:results.pathogenic_pdb_structure?.substring(0,50),structuresIdentical:results.wt_pdb_structure===results.pathogenic_pdb_structure},timestamp:Date.now(),runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    
-    if (structureViewMode === 'rescue' && selectedCandidate !== null) {
-      const candidate = getSelectedCandidate();
-      if (candidate?.pdb_structure) {
-        return candidate.pdb_structure;
-      }
-    }
-    
-    if (structureViewMode === 'wt' && results.wt_pdb_structure) {
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:127','message':'Returning WT structure','data':{wtLength:results.wt_pdb_structure.length,wtFirst50:results.wt_pdb_structure.substring(0,50)},timestamp:Date.now(),runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      return results.wt_pdb_structure;
-    }
-    
-    if (structureViewMode === 'pathogenic' && results.pathogenic_pdb_structure) {
-      // #region agent log
-      fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:131','message':'Returning pathogenic structure','data':{pathogenicLength:results.pathogenic_pdb_structure.length,pathogenicFirst50:results.pathogenic_pdb_structure.substring(0,50)},timestamp:Date.now(),runId:'pre-fix',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      return results.pathogenic_pdb_structure;
-    }
-    
-    // Fallback: try to get any available structure
-    if (selectedCandidate !== null) {
-      const candidate = getSelectedCandidate();
-      if (candidate?.pdb_structure) {
-        return candidate.pdb_structure;
-      }
-    }
-    
-    if (results.wt_pdb_structure) {
-      return results.wt_pdb_structure;
-    }
-    
-    if (results.pathogenic_pdb_structure) {
-      return results.pathogenic_pdb_structure;
-    }
-    
-    return null;
-  };
 
-  // Get structure title based on view mode
-  const getStructureTitle = () => {
-    if (!results) return 'Protein Structure';
-    
-    if (structureViewMode === 'rescue' && selectedCandidate !== null) {
-      const candidate = getSelectedCandidate();
-      if (candidate?.pdb_structure) {
-        return `Rescue Structure: ${candidate.mutation}`;
-      }
-    }
-    
-    if (structureViewMode === 'wt') {
-      return 'Wild-Type Structure';
-    }
-    
-    if (structureViewMode === 'pathogenic') {
-      return `Pathogenic Structure: ${results.original_mutation}`;
-    }
-    
-    // Fallback titles
-    if (results.wt_pdb_structure) {
-      return 'Wild-Type Structure';
-    }
-    
-    if (results.pathogenic_pdb_structure) {
-      return `Pathogenic Structure: ${results.original_mutation}`;
-    }
-    
-    return 'Protein Structure';
-  };
-
-  // Get available structure types
-  const getAvailableStructures = () => {
-    if (!results) return [];
-    const available: string[] = [];
-    
-    if (selectedCandidate !== null && getSelectedCandidate()?.pdb_structure) {
-      available.push('rescue');
-    }
-    if (results.wt_pdb_structure) {
-      available.push('wt');
-    }
-    if (results.pathogenic_pdb_structure) {
-      available.push('pathogenic');
-    }
-    
-    return available;
-  };
-
-  // Auto-select appropriate view mode when results change
-  useEffect(() => {
-    if (!results) return;
-    
-    const available: string[] = [];
-    if (selectedCandidate !== null && getSelectedCandidate()?.pdb_structure) {
-      available.push('rescue');
-    }
-    if (results.wt_pdb_structure) {
-      available.push('wt');
-    }
-    if (results.pathogenic_pdb_structure) {
-      available.push('pathogenic');
-    }
-    
-    if (available.length === 0) return;
-    
-    // If current mode is not available, switch to first available
-    if (!available.includes(structureViewMode)) {
-      if (available.includes('rescue')) {
-        setStructureViewMode('rescue');
-      } else if (available.includes('wt')) {
-        setStructureViewMode('wt');
-      } else if (available.includes('pathogenic')) {
-        setStructureViewMode('pathogenic');
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [results, selectedCandidate, structureViewMode]);
 
   // Check if we have any structure data to display
   const hasStructureData = () => {
@@ -253,6 +121,38 @@ function App() {
     if (results.wt_pdb_structure) return true;
     if (results.pathogenic_pdb_structure) return true;
     return false;
+  };
+
+  // Parse mutation string to extract position (e.g., "R249S" -> 249)
+  const parseMutationPosition = (mutation: string): number | null => {
+    if (!mutation) return null;
+    const match = mutation.match(/^[A-Z](\d+)[A-Z]$/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+    return null;
+  };
+
+  // Get all mutation positions to highlight
+  const getMutationPositions = () => {
+    if (!results) return [];
+    const positions: number[] = [];
+    
+    // Add pathogenic mutation position
+    const pathogenicPos = parseMutationPosition(results.original_mutation);
+    if (pathogenicPos) {
+      positions.push(pathogenicPos);
+    }
+    
+    // Add rescue mutation position if candidate is selected
+    if (selectedCandidate !== null) {
+      const candidate = getSelectedCandidate();
+      if (candidate?.position) {
+        positions.push(candidate.position);
+      }
+    }
+    
+    return positions;
   };
 
   return (
@@ -300,67 +200,74 @@ function App() {
             
             {hasStructureData() && (
               <div className="structure-section">
-                {getAvailableStructures().length > 1 && (
-                  <div className="structure-view-selector">
-                    {getAvailableStructures().includes('rescue') && (
-                      <button
-                        className={structureViewMode === 'rescue' ? 'active' : ''}
-                        onClick={() => setStructureViewMode('rescue')}
-                      >
-                        Rescue Structure
-                      </button>
-                    )}
-                    {getAvailableStructures().includes('wt') && (
-                      <button
-                        className={structureViewMode === 'wt' ? 'active' : ''}
-                        onClick={() => setStructureViewMode('wt')}
-                      >
-                        Wild-Type
-                      </button>
-                    )}
-                    {getAvailableStructures().includes('pathogenic') && (
-                      <button
-                        className={structureViewMode === 'pathogenic' ? 'active' : ''}
-                        onClick={() => setStructureViewMode('pathogenic')}
-                      >
-                        Pathogenic
-                      </button>
-                    )}
-                  </div>
-                )}
-                {(() => {
-                  try {
-                    const structureData = getStructureData();
+                <div className="structures-grid">
+                  {/* Rescue Structure Column */}
+                  {selectedCandidate !== null && getSelectedCandidate()?.pdb_structure && (() => {
+                    const candidate = getSelectedCandidate();
+                    const rescuePos = candidate?.position;
+                    const pathogenicPos = parseMutationPosition(results.original_mutation);
+                    const highlightResidues = (() => {
+                      const positions: number[] = [];
+                      if (rescuePos) positions.push(rescuePos);
+                      if (pathogenicPos && pathogenicPos !== rescuePos) positions.push(pathogenicPos);
+                      return positions;
+                    })();
+                    const highlightColors = (() => {
+                      const colors: { [position: number]: string } = {};
+                      if (rescuePos) colors[rescuePos] = 'green';
+                      if (pathogenicPos && pathogenicPos !== rescuePos) colors[pathogenicPos] = 'red';
+                      return colors;
+                    })();
                     return (
+                    <div className="structure-grid-item" key="rescue-structure">
                       <StructureViewer
-                        title={getStructureTitle()}
-                        pdbData={structureData}
-                        highlightResidues={
-                          structureViewMode === 'rescue' && getSelectedCandidate()
-                            ? [getSelectedCandidate()!.position]
-                            : structureViewMode === 'pathogenic' && results
-                            ? [] // Could extract mutation position from results.original_mutation
-                            : []
-                        }
-                        overlayImage={
-                          structureViewMode === 'rescue' ? getSelectedCandidate()?.overlay_image : undefined
-                        }
+                        key={`rescue-${candidate?.mutation}-${candidate?.pdb_structure?.substring(0, 100)}`}
+                        title={`Rescue Structure: ${candidate?.mutation || 'N/A'}`}
+                        pdbData={candidate?.pdb_structure}
+                        highlightResidues={highlightResidues}
+                        highlightColors={highlightColors}
+                        overlayImage={candidate?.overlay_image}
                       />
+                    </div>
                     );
-                  } catch (err) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'App.tsx:301', 'message': 'Error rendering StructureViewer', 'data': { errorMessage: err instanceof Error ? err.message : String(err), errorStack: err instanceof Error ? err.stack : undefined }, timestamp: Date.now(), runId: 'post-fix', hypothesisId: 'G' }) }).catch(() => { });
-                    // #endregion
-                    console.error('Error rendering StructureViewer:', err);
+                  })()}
+                  
+                  {/* Wild-Type Structure Column */}
+                  {results.wt_pdb_structure && (() => {
+                    const pathogenicPos = parseMutationPosition(results.original_mutation);
+                    const highlightResidues = pathogenicPos ? [pathogenicPos] : [];
+                    const highlightColors = pathogenicPos ? { [pathogenicPos]: 'red' } : {};
                     return (
-                      <div className="error-container">
-                        <div className="error-message">
-                          Error loading structure viewer: {err instanceof Error ? err.message : 'Unknown error'}
-                        </div>
-                      </div>
+                    <div className="structure-grid-item" key="wt-structure">
+                      <StructureViewer
+                        key={`wt-${results.wt_pdb_structure?.substring(0, 100)}`}
+                        title="Wild-Type Structure"
+                        pdbData={results.wt_pdb_structure}
+                        highlightResidues={highlightResidues}
+                        highlightColors={highlightColors}
+                      />
+                    </div>
                     );
-                  }
-                })()}
+                  })()}
+                  
+                  {/* Pathogenic Structure Column */}
+                  {results.pathogenic_pdb_structure && (() => {
+                    const pathogenicPos = parseMutationPosition(results.original_mutation);
+                    const highlightResidues = pathogenicPos ? [pathogenicPos] : [];
+                    const highlightColors = pathogenicPos ? { [pathogenicPos]: 'red' } : {};
+                    return (
+                    <div className="structure-grid-item" key="pathogenic-structure">
+                      <StructureViewer
+                        key={`pathogenic-${results.original_mutation}-${results.pathogenic_pdb_structure?.substring(0, 100)}`}
+                        title={`Pathogenic Structure: ${results.original_mutation}`}
+                        pdbData={results.pathogenic_pdb_structure}
+                        highlightResidues={highlightResidues}
+                        highlightColors={highlightColors}
+                      />
+                    </div>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>

@@ -7,6 +7,7 @@ interface StructureViewerProps {
     pdbUrl?: string; // URL to fetch PDB file
     title?: string;
     highlightResidues?: number[]; // Residue positions to highlight (1-indexed)
+    highlightColors?: { [position: number]: string }; // Optional color mapping for specific residues
     overlayImage?: string; // Base64-encoded overlay image
 }
 
@@ -21,6 +22,7 @@ export default function StructureViewer({
     pdbUrl,
     title = 'Protein Structure',
     highlightResidues = [],
+    highlightColors = {},
     overlayImage,
 }: StructureViewerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -66,10 +68,6 @@ export default function StructureViewer({
                 setIsLoading(true);
                 setError(null);
 
-                // #region agent log
-                fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'StructureViewer.tsx:64', 'message': 'Loading structure in NGL viewer', 'data': { hasPdbData: !!pdbData, hasPdbUrl: !!pdbUrl, pdbDataLength: pdbData?.length || 0, pdbDataFirst50: pdbData?.substring(0, 50), title }, timestamp: Date.now(), runId: 'post-fix', hypothesisId: 'D' }) }).catch(() => { });
-                // #endregion
-
                 // Dispose old stage before creating new one
                 if (stageRef.current) {
                     try {
@@ -83,9 +81,6 @@ export default function StructureViewer({
                 // Create NGL stage (NGL will handle container cleanup)
                 // Ensure container is still valid (React might have unmounted)
                 if (!containerRef.current) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'StructureViewer.tsx:83', 'message': 'Container ref is null, aborting', 'data': {}, timestamp: Date.now(), runId: 'post-fix', hypothesisId: 'H' }) }).catch(() => { });
-                    // #endregion
                     setIsLoading(false);
                     return;
                 }
@@ -107,9 +102,10 @@ export default function StructureViewer({
                 }
 
                 if (component) {
-                    // Add default representation
+                    // Add default representation - use gray for all base structures
                     component.addRepresentation('cartoon', {
-                        color: 'sstruc',
+                        color: 'gray',
+                        opacity: 0.9,
                     });
                     component.addRepresentation('ball+stick', {
                         sele: 'hetero',
@@ -117,26 +113,58 @@ export default function StructureViewer({
 
                     // Highlight specific residues if provided
                     if (highlightResidues.length > 0) {
-                        const selection = highlightResidues.map((pos) => `:${pos}`).join(' or ');
-                        component.addRepresentation('licorice', {
-                            sele: selection,
-                            color: 'red',
+                        // Map color names to hex codes for NGL compatibility
+                        const colorMap: { [key: string]: string } = {
+                            'green': '#00ff00',
+                            'red': '#ff0000',
+                            'blue': '#0000ff',
+                            'yellow': '#ffff00',
+                            'orange': '#ffa500',
+                        };
+                        
+                        // Group residues by color
+                        const colorGroups: { [color: string]: number[] } = {};
+                        highlightResidues.forEach((pos) => {
+                            const colorName = highlightColors[pos] || 'red';
+                            const colorHex = colorMap[colorName] || colorName; // Use hex if mapped, otherwise use as-is (might be hex already)
+                            if (!colorGroups[colorHex]) {
+                                colorGroups[colorHex] = [];
+                            }
+                            colorGroups[colorHex].push(pos);
+                        });
+                        
+                        // Add representation for each color group
+                        Object.entries(colorGroups).forEach(([colorHex, positions]) => {
+                            // Use residue number selection (without colon) - NGL prefers this format
+                            const selection = positions.map((pos) => `${pos}`).join(' or ');
+                            // Highlight strands using cartoon representation only
+                            try {
+                                // Add cartoon representation for highlighted residues - this will color the strands
+                                component.addRepresentation('cartoon', {
+                                    sele: selection,
+                                    color: colorHex,
+                                    opacity: 1.0,
+                                });
+                                // Add licorice for side chains to make highlights more visible
+                                component.addRepresentation('licorice', {
+                                    sele: selection,
+                                    color: colorHex,
+                                    radius: 0.4, // Visible but not overwhelming
+                                    opacity: 1.0,
+                                });
+                            } catch (e) {
+                                console.error('Error adding highlight representation:', e);
+                            }
                         });
                     }
 
-                    // Auto-view
-                    stage.autoView();
+                    // Auto-view to display structure
+                    stage.autoView(500);
                 }
 
                 setIsLoading(false);
-                // #region agent log
-                fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'StructureViewer.tsx:122', 'message': 'Structure loaded successfully', 'data': { hasComponent: !!component, pdbDataLength: pdbData?.length || 0 }, timestamp: Date.now(), runId: 'post-fix', hypothesisId: 'D' }) }).catch(() => { });
-                // #endregion
             } catch (err) {
                 console.error('Error loading structure:', err);
-                // #region agent log
-                fetch('http://127.0.0.1:7245/ingest/ca570fb1-81be-4a7a-b963-2da680c5e0a2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'StructureViewer.tsx:124', 'message': 'Error in loadStructure', 'data': { errorMessage: err instanceof Error ? err.message : String(err), errorStack: err instanceof Error ? err.stack : undefined, pdbDataLength: pdbData?.length || 0 }, timestamp: Date.now(), runId: 'post-fix', hypothesisId: 'D' }) }).catch(() => { });
-                // #endregion
                 setError(err instanceof Error ? err.message : 'Failed to load structure');
                 setIsLoading(false);
             }
@@ -151,7 +179,7 @@ export default function StructureViewer({
                 stageRef.current = null;
             }
         };
-    }, [scriptLoaded, pdbData, pdbUrl, highlightResidues]);
+    }, [scriptLoaded, pdbData, pdbUrl, highlightResidues, highlightColors]);
 
     if (error) {
         return (
