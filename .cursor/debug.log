@@ -1,0 +1,16 @@
+
+{"location": "orchestrator.py:phase1_start", "message": "Phase 1 Gemini call starting", "data": {"t": 1770613433.198258}, "hypothesisId": "H1", "timestamp": 1770613433198}
+{"location": "orchestrator.py:phase1_end", "message": "Phase 1 Gemini completed", "data": {"t": 1770613448.3044748, "candidates": 3}, "hypothesisId": "H1", "timestamp": 1770613448304}
+{"location": "orchestrator.py:before_delay", "message": "About to sleep before Phase 5", "data": {"t": 1770613453.53392}, "hypothesisId": "H1", "timestamp": 1770613453534}
+{"location": "orchestrator.py:phase5_start", "message": "Phase 5 Gemini call starting", "data": {"t": 1770613513.536459, "elapsed_since_before_delay": 60.0, "seconds_since_phase1": 65.2, "quota_window_60s": false}, "hypothesisId": "H1", "timestamp": 1770613513536}
+{"location": "gemini_service.py:final_validation", "message": "Phase 5 prompt size", "data": {"prompt_chars": 4320, "est_tokens": 1080, "candidates": 2}, "hypothesisId": "H1", "timestamp": 1770613513538}
+{"location": "orchestrator.py:phase1_start", "message": "Phase 1 Gemini call starting", "data": {"t": 1770613614.750088}, "hypothesisId": "H1", "timestamp": 1770613614750}
+{"location": "orchestrator.py:phase1_end", "message": "Phase 1 Gemini completed", "data": {"t": 1770613633.799459, "candidates": 3}, "hypothesisId": "H1", "timestamp": 1770613633799}
+{"location": "orchestrator.py:before_delay", "message": "About to sleep before Phase 5", "data": {"t": 1770613638.177997}, "hypothesisId": "H1", "timestamp": 1770613638178}
+{"location": "orchestrator.py:phase5_start", "message": "Phase 5 Gemini call starting", "data": {"t": 1770613698.180274, "elapsed_since_before_delay": 60.0, "seconds_since_phase1": 64.4, "quota_window_60s": false}, "hypothesisId": "H1", "timestamp": 1770613698185}
+{"location": "gemini_service.py:final_validation", "message": "Phase 5 prompt size", "data": {"prompt_chars": 4257, "est_tokens": 1064, "candidates": 2}, "hypothesisId": "H1", "timestamp": 1770613698189}
+{"location": "orchestrator.py:phase1_start", "message": "Phase 1 Gemini call starting", "data": {"t": 1770614338.664114}, "hypothesisId": "H1", "timestamp": 1770614338664}
+{"location": "orchestrator.py:phase1_end", "message": "Phase 1 Gemini completed", "data": {"t": 1770614355.286519, "candidates": 3}, "hypothesisId": "H1", "timestamp": 1770614355286}
+{"location": "orchestrator.py:before_delay", "message": "About to sleep before Phase 5", "data": {"t": 1770614359.5922549}, "hypothesisId": "H1", "timestamp": 1770614359592}
+{"location": "orchestrator.py:phase5_start", "message": "Phase 5 Gemini call starting", "data": {"t": 1770614419.5598369, "elapsed_since_before_delay": 60.0, "seconds_since_phase1": 64.3, "quota_window_60s": false}, "hypothesisId": "H1", "timestamp": 1770614419560}
+{"location": "gemini_service.py:final_validation", "message": "Phase 5 prompt size", "data": {"prompt_chars": 4233, "est_tokens": 1058, "candidates": 2}, "hypothesisId": "H1", "timestamp": 1770614419561}

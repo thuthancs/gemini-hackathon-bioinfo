@@ -1,13 +1,13 @@
 /** Main application component. */
-import { useState, useEffect } from 'react';
-import SequenceInput from './components/SequenceInput';
-import ResultsTable from './components/ResultsTable';
+import { useEffect, useState } from 'react';
+import './App.css';
 import PipelineFlow from './components/PipelineFlow';
+import ResultsTable from './components/ResultsTable';
+import SequenceInput from './components/SequenceInput';
 import StructureViewer from './components/StructureViewer';
 import ValidationDetails from './components/ValidationDetails';
 import { apiClient } from './services/api';
 import type { AnalysisResponse } from './types';
-import './App.css';
 
 function App() {
   const [results, setResults] = useState<AnalysisResponse | null>(null);
@@ -62,18 +62,18 @@ function App() {
       );
       setResults(response);
       setCurrentPhase(5); // Mark all phases as complete
-      
+
       // Auto-select candidate with highest ESM score for 3D structure demo
       // Use approved candidates first, fallback to validated candidates if no approved
       const approved = response.results?.approved || [];
       const validated = response.results?.validated || [];
       const candidatesToUse = approved.length > 0 ? approved : validated;
-      
+
       if (candidatesToUse.length > 0) {
         // Find candidate with highest ESM score
         let bestIndex = 0;
         let bestScore = candidatesToUse[0]?.esm_score || 0;
-        
+
         candidatesToUse.forEach((candidate, index) => {
           const score = candidate.esm_score || 0;
           if (score > bestScore) {
@@ -81,7 +81,7 @@ function App() {
             bestIndex = index;
           }
         });
-        
+
         setSelectedCandidate(bestIndex);
       } else {
         // No candidates, but we might have WT or pathogenic structures
@@ -137,13 +137,13 @@ function App() {
   const getMutationPositions = () => {
     if (!results) return [];
     const positions: number[] = [];
-    
+
     // Add pathogenic mutation position
     const pathogenicPos = parseMutationPosition(results.original_mutation);
     if (pathogenicPos) {
       positions.push(pathogenicPos);
     }
-    
+
     // Add rescue mutation position if candidate is selected
     if (selectedCandidate !== null) {
       const candidate = getSelectedCandidate();
@@ -151,14 +151,14 @@ function App() {
         positions.push(candidate.position);
       }
     }
-    
+
     return positions;
   };
 
   return (
     <div className="app">
       <header className="app-header">
-        <h1>GeneRescue</h1>
+        <h1>Rescue Mutation</h1>
         <p>Mutation Rescue Analysis Pipeline</p>
       </header>
 
@@ -170,8 +170,8 @@ function App() {
 
         {(isLoading || results) && (
           <div className="pipeline-section">
-            <PipelineFlow 
-              isLoading={isLoading} 
+            <PipelineFlow
+              isLoading={isLoading}
               currentPhase={currentPhase}
               error={error}
             />
@@ -186,18 +186,18 @@ function App() {
 
         {results && (
           <div className="results-section">
-            <ResultsTable 
-              results={results} 
+            <ResultsTable
+              results={results}
               onSelectCandidate={setSelectedCandidate}
               selectedCandidate={selectedCandidate}
             />
-            
+
             {results.results && (
               <div className="validation-section">
                 <ValidationDetails validation={results.results} />
               </div>
             )}
-            
+
             {hasStructureData() && (
               <div className="structure-section">
                 <div className="structures-grid">
@@ -219,52 +219,52 @@ function App() {
                       return colors;
                     })();
                     return (
-                    <div className="structure-grid-item" key="rescue-structure">
-                      <StructureViewer
-                        key={`rescue-${candidate?.mutation}-${candidate?.pdb_structure?.substring(0, 100)}`}
-                        title={`Rescue Structure: ${candidate?.mutation || 'N/A'}`}
-                        pdbData={candidate?.pdb_structure}
-                        highlightResidues={highlightResidues}
-                        highlightColors={highlightColors}
-                        overlayImage={candidate?.overlay_image}
-                      />
-                    </div>
+                      <div className="structure-grid-item" key="rescue-structure">
+                        <StructureViewer
+                          key={`rescue-${candidate?.mutation}-${candidate?.pdb_structure?.substring(0, 100)}`}
+                          title={`Rescue Structure: ${candidate?.mutation || 'N/A'}`}
+                          pdbData={candidate?.pdb_structure}
+                          highlightResidues={highlightResidues}
+                          highlightColors={highlightColors}
+                          overlayImage={candidate?.overlay_image}
+                        />
+                      </div>
                     );
                   })()}
-                  
+
                   {/* Wild-Type Structure Column */}
                   {results.wt_pdb_structure && (() => {
                     const pathogenicPos = parseMutationPosition(results.original_mutation);
                     const highlightResidues = pathogenicPos ? [pathogenicPos] : [];
                     const highlightColors = pathogenicPos ? { [pathogenicPos]: 'red' } : {};
                     return (
-                    <div className="structure-grid-item" key="wt-structure">
-                      <StructureViewer
-                        key={`wt-${results.wt_pdb_structure?.substring(0, 100)}`}
-                        title="Wild-Type Structure"
-                        pdbData={results.wt_pdb_structure}
-                        highlightResidues={highlightResidues}
-                        highlightColors={highlightColors}
-                      />
-                    </div>
+                      <div className="structure-grid-item" key="wt-structure">
+                        <StructureViewer
+                          key={`wt-${results.wt_pdb_structure?.substring(0, 100)}`}
+                          title="Wild-Type Structure"
+                          pdbData={results.wt_pdb_structure}
+                          highlightResidues={highlightResidues}
+                          highlightColors={highlightColors}
+                        />
+                      </div>
                     );
                   })()}
-                  
+
                   {/* Pathogenic Structure Column */}
                   {results.pathogenic_pdb_structure && (() => {
                     const pathogenicPos = parseMutationPosition(results.original_mutation);
                     const highlightResidues = pathogenicPos ? [pathogenicPos] : [];
                     const highlightColors = pathogenicPos ? { [pathogenicPos]: 'red' } : {};
                     return (
-                    <div className="structure-grid-item" key="pathogenic-structure">
-                      <StructureViewer
-                        key={`pathogenic-${results.original_mutation}-${results.pathogenic_pdb_structure?.substring(0, 100)}`}
-                        title={`Pathogenic Structure: ${results.original_mutation}`}
-                        pdbData={results.pathogenic_pdb_structure}
-                        highlightResidues={highlightResidues}
-                        highlightColors={highlightColors}
-                      />
-                    </div>
+                      <div className="structure-grid-item" key="pathogenic-structure">
+                        <StructureViewer
+                          key={`pathogenic-${results.original_mutation}-${results.pathogenic_pdb_structure?.substring(0, 100)}`}
+                          title={`Pathogenic Structure: ${results.original_mutation}`}
+                          pdbData={results.pathogenic_pdb_structure}
+                          highlightResidues={highlightResidues}
+                          highlightColors={highlightColors}
+                        />
+                      </div>
                     );
                   })()}
                 </div>
