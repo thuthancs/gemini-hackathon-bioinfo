@@ -1,4 +1,4 @@
-# GeneRescue Backend
+# Rescue Mutations Backend
 
 FastAPI backend for mutation rescue analysis using Gemini, ESM-1v, and ESMFold.
 
