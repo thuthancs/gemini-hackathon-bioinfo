@@ -20,24 +20,24 @@ router = APIRouter(tags=["mutations"])
 
 @router.post("/create-mutant", response_model=CreateMutantResponse, status_code=status.HTTP_200_OK)
 @limiter.limit(settings.rate_limit_create_mutant)
-async def create_mutant_sequence(http_request: Request, request: CreateMutantRequest):
+async def create_mutant_sequence(request: Request, body: CreateMutantRequest):
     """
     Phase 0 only: Create mutant sequence from wild-type. No API keys needed.
     """
-    if not validate_sequence(request.sequence):
+    if not validate_sequence(body.sequence):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid sequence: contains invalid amino acid characters",
         )
     try:
-        mutant = create_mutant(request.sequence, request.mutation)
-        m = re.match(r"^([A-Z])(\d+)([A-Z])$", request.mutation)
+        mutant = create_mutant(body.sequence, body.mutation)
+        m = re.match(r"^([A-Z])(\d+)([A-Z])$", body.mutation)
         if not m:
-            raise HTTPException(status_code=400, detail=f"Invalid mutation format: {request.mutation}")
+            raise HTTPException(status_code=400, detail=f"Invalid mutation format: {body.mutation}")
         orig_aa, pos_str, new_aa = m.groups()
         return CreateMutantResponse(
-            mutation=request.mutation,
-            wild_type_sequence=request.sequence,
+            mutation=body.mutation,
+            wild_type_sequence=body.sequence,
             mutant_sequence=mutant,
             position=int(pos_str),
             original_aa=orig_aa,
@@ -49,7 +49,7 @@ async def create_mutant_sequence(http_request: Request, request: CreateMutantReq
 
 @router.post("/analyze", response_model=AnalysisResponse, status_code=status.HTTP_200_OK)
 @limiter.limit(settings.rate_limit_analyze)
-async def analyze_mutation(http_request: Request, request: AnalysisRequest):
+async def analyze_mutation(request: Request, body: AnalysisRequest):
     """
     Analyze a mutation and find potential rescue mutations.
     
@@ -71,10 +71,10 @@ async def analyze_mutation(http_request: Request, request: AnalysisRequest):
         HTTPException: If request validation fails or pipeline errors occur
     """
     try:
-        logger.info(f"Analyzing mutation request: {request.mutation} for {request.protein}")
+        logger.info(f"Analyzing mutation request: {body.mutation} for {body.protein}")
         
         # Validate sequence
-        if not validate_sequence(request.sequence):
+        if not validate_sequence(body.sequence):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid sequence: contains invalid amino acid characters"
@@ -82,12 +82,12 @@ async def analyze_mutation(http_request: Request, request: AnalysisRequest):
         
         # Run pipeline
         result = await run_full_pipeline(
-            sequence=request.sequence,
-            mutation=request.mutation,
-            protein=request.protein,
-            gene_function=request.gene_function,
-            disease=request.disease,
-            organism=request.organism
+            sequence=body.sequence,
+            mutation=body.mutation,
+            protein=body.protein,
+            gene_function=body.gene_function,
+            disease=body.disease,
+            organism=body.organism
         )
         
         # Check for errors

@@ -127,6 +127,12 @@ def build_validation_prompt(
     disease: Optional[str]
 ) -> str:
     """Build multi-dimensional validation prompt."""
+    # Strip large PDB/image data to stay under Gemini token limit (~250K/min)
+    stripped = []
+    for c in candidates:
+        s = {k: v for k, v in c.items() if k not in ("pdb_structure", "pathogenic_pdb_structure", "overlay_image")}
+        stripped.append(s)
+    
     prompt = f"""You are an expert structural biologist performing final validation of rescue mutations.
 
 ## PROTEIN CONTEXT
@@ -141,7 +147,7 @@ def build_validation_prompt(
     prompt += f"""
 
 ## CANDIDATE DATA
-{json.dumps(candidates, indent=2)}
+{json.dumps(stripped, indent=2)}
 
 ## VALIDATION TASKS
 
@@ -402,12 +408,35 @@ def final_validation(
             gene_function=gene_function,
             disease=disease
         )
-        
+        # #region agent log
+        try:
+            with open("/Users/yerkemshakhman/lastdraft/gemini-hackathon-bioinfo/.cursor/debug.log", "a") as _f:
+                _f.write("\n" + json.dumps({"location":"gemini_service.py:final_validation","message":"Phase 5 prompt size","data":{"prompt_chars":len(prompt),"est_tokens":len(prompt)//4,"candidates":len(candidates)},"hypothesisId":"H1","timestamp":int(time.time()*1000)}))
+        except Exception: pass
+        # #endregion
         logger.info(f"Requesting final validation from Gemini for {len(candidates)} candidates")
-        response = client.models.generate_content(
-            model=settings.gemini_model_validation,
-            contents=prompt
-        )
+        response = None
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=settings.gemini_model_validation,
+                    contents=prompt
+                )
+                break
+            except Exception as api_err:
+                err_str = str(api_err)
+                is_retryable = (
+                    "429" in err_str or "RESOURCE_EXHAUSTED" in err_str
+                    or "503" in err_str or "UNAVAILABLE" in err_str or "overloaded" in err_str.lower()
+                )
+                if is_retryable and attempt < 2:
+                    wait = 15
+                    logger.warning(
+                        f"Gemini transient error (429/503), retrying in {wait}s (attempt {attempt+1}/3)"
+                    )
+                    time.sleep(wait)
+                    continue
+                raise
         
         # Handle different response formats (new API might use different attribute)
         if hasattr(response, 'text'):
