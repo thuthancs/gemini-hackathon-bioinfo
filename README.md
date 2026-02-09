@@ -1,10 +1,10 @@
-# GeneRescue
+# Rescue Mutation
 
 A comprehensive mutation rescue analysis platform that discovers and validates compensatory mutations to rescue pathogenic protein mutations. The system combines AI-powered literature analysis, evolutionary fitness validation, and structural prediction to identify potential therapeutic rescue mutations.
 
 ## Overview
 
-GeneRescue implements a 6-phase pipeline that:
+Rescue Mutation implements a 6-phase pipeline that:
 1. Creates mutant sequences from wild-type proteins
 2. Discovers rescue candidates using Google Gemini AI
 3. Validates candidates with ESM-1v evolutionary fitness model
